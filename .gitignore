@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / build outputs
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+venv_ragas/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs and databases
+*.log
+*.db
+*.sqlite3
+evaluation_results.db
+database/rag_evaluate.db
+
+# Jupyter and notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE and editor settings
+.idea/
+.vscode/
+*.code-workspace
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Test outputs
+coverage/
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+

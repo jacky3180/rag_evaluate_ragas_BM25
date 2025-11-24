@@ -1,0 +1,277 @@
+/* Ragas 设置按钮样式 */
+.btn-icon {
+    background: transparent;
+    border: 2px solid #2C68FF;
+    color: #2C68FF;
+    font-size: 1.2rem;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    margin-left: 12px;
+    border-radius: 50%;  /* 圆形 */
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(44, 104, 255, 0.2);
+}
+
+.btn-icon:hover {
+    background: rgba(44, 104, 255, 0.1);
+    transform: rotate(90deg) scale(1.1);
+    box-shadow: 0 3px 10px rgba(44, 104, 255, 0.4);
+    border-color: #1e4fd9;
+}
+
+.btn-icon i {
+    font-size: 1rem;
+}
+
+/* 设置提示文字样式 */
+.settings-hint {
+    color: #999;
+    font-size: 0.75rem;
+    font-weight: 400;
+    margin-left: 8px;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Ragas 设置弹框样式 */
+.ragas-settings-modal {
+    max-width: 750px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;  /* 弹框本身不滚动 */
+}
+
+.ragas-settings-modal .modal-header {
+    flex-shrink: 0;  /* header不缩小，固定在顶部 */
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.ragas-settings-modal .modal-body {
+    padding: 25px 30px;
+    overflow-y: auto;  /* 只有内容区域滚动 */
+    flex: 1;  /* 占据剩余空间 */
+    min-height: 0;  /* 允许内容溢出时滚动 */
+}
+
+/* 美化滚动条 */
+.ragas-settings-modal .modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ragas-settings-modal .modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.ragas-settings-modal .modal-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.ragas-settings-modal .modal-body::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.ragas-settings-modal .modal-footer {
+    flex-shrink: 0;  /* footer不缩小，固定在底部 */
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid #e1e5e9;
+    z-index: 10;
+}
+
+.settings-description {
+    background: #e8f4fd;
+    border-left: 4px solid #2C68FF;
+    padding: 12px 15px;
+    margin-bottom: 25px;
+    border-radius: 4px;
+    color: #1e4fd9;
+    font-size: 0.95rem;
+}
+
+.settings-description i {
+    margin-right: 8px;
+}
+
+/* 指标选择器样式 */
+.metrics-selector {
+    margin-bottom: 20px;
+}
+
+.metric-group {
+    margin-bottom: 25px;
+}
+
+.metric-group h4 {
+    color: #2C68FF;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e1e5e9;
+    display: flex;
+    align-items: center;
+}
+
+.metric-group h4 i {
+    margin-right: 8px;
+    font-size: 1rem;
+}
+
+.metric-checkbox-item {
+    background: #f8f9fa;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.metric-checkbox-item:hover {
+    border-color: #2C68FF;
+    background: #f0f7ff;
+    transform: translateX(5px);
+}
+
+.metric-checkbox-item label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin: 0;
+    font-weight: 500;
+}
+
+.metric-checkbox-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    cursor: pointer;
+    accent-color: #2C68FF;
+}
+
+.metric-checkbox-item input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.metric-name {
+    color: #333;
+    font-size: 1rem;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.metric-cn-name {
+    color: #666;
+    font-size: 0.9rem;
+    margin-left: auto;
+}
+
+.required-badge {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.metric-desc {
+    margin: 8px 0 0 32px;
+    color: #777;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+/* 设置汇总 */
+.settings-summary {
+    background: linear-gradient(135deg, #2C68FF 0%, #1e4fd9 100%);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.settings-summary i {
+    margin-right: 8px;
+}
+
+.settings-summary span {
+    color: #ffd700;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .ragas-settings-modal {
+        max-width: 95%;
+        max-height: 90vh;
+        margin: 5vh auto;
+    }
+    
+    .ragas-settings-modal .modal-body {
+        padding: 20px;
+        max-height: calc(90vh - 130px);  /* 调整小屏幕的最大高度 */
+    }
+    
+    .metric-checkbox-item label {
+        flex-wrap: wrap;
+    }
+    
+    .metric-cn-name {
+        margin-left: 32px;
+        margin-top: 5px;
+    }
+    
+    .metric-desc {
+        margin-left: 0;
+    }
+    
+    /* 小屏幕上隐藏提示文字 */
+    .settings-hint {
+        display: none;
+    }
+    
+    /* 小屏幕上按钮稍小一些 */
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .btn-icon i {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    /* 超小屏幕上进一步优化 */
+    .settings-hint {
+        display: none;
+    }
+    
+    .ragas-settings-modal {
+        max-width: 98%;
+        max-height: 95vh;
+        margin: 2.5vh auto;
+    }
+    
+    .ragas-settings-modal .modal-body {
+        padding: 15px;
+        max-height: calc(95vh - 120px);
+    }
+}
+

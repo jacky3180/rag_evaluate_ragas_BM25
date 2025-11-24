@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>指标缓存功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.danger {
+            background: #dc3545;
+        }
+        .test-button.danger:hover {
+            background: #c82333;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.success:hover {
+            background: #218838;
+        }
+        .metrics-display {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .metric-group {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .metric-group h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 3px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>指标缓存功能测试</h1>
+    
+    <div class="test-section">
+        <h2>测试控制</h2>
+        <button class="test-button success" onclick="testCacheBM25()">测试BM25缓存</button>
+        <button class="test-button success" onclick="testCacheRagas()">测试Ragas缓存</button>
+        <button class="test-button" onclick="loadCachedData()">加载缓存数据</button>
+        <button class="test-button danger" onclick="clearAllCache()">清除所有缓存</button>
+        <button class="test-button" onclick="showCacheStatus()">显示缓存状态</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>缓存状态</h2>
+        <div id="cacheStatus" class="status info">点击"显示缓存状态"查看当前缓存情况</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>指标显示</h2>
+        <div class="metrics-display">
+            <div class="metric-group">
+                <h3>BM25指标</h3>
+                <div class="metric-item">
+                    <span>Context Precision:</span>
+                    <span id="test-bm25-precision">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>Context Recall:</span>
+                    <span id="test-bm25-recall">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>F1-Score:</span>
+                    <span id="test-bm25-f1">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>MRR:</span>
+                    <span id="test-bm25-mrr">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>MAP:</span>
+                    <span id="test-bm25-map">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>NDCG:</span>
+                    <span id="test-bm25-ndcg">--</span>
+                </div>
+            </div>
+            
+            <div class="metric-group">
+                <h3>Ragas指标</h3>
+                <div class="metric-item">
+                    <span>Context Precision:</span>
+                    <span id="test-ragas-precision">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>Context Recall:</span>
+                    <span id="test-ragas-recall">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>Faithfulness:</span>
+                    <span id="test-ragas-faithfulness">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>Answer Relevancy:</span>
+                    <span id="test-ragas-relevancy">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>Entity Recall:</span>
+                    <span id="test-ragas-entity-recall">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>Context Relevance:</span>
+                    <span id="test-ragas-context-relevance">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>Answer Correctness:</span>
+                    <span id="test-ragas-correctness">--</span>
+                </div>
+                <div class="metric-item">
+                    <span>Answer Similarity:</span>
+                    <span id="test-ragas-similarity">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟指标缓存对象
+        let metricsCache = {
+            bm25: {
+                context_precision: null,
+                context_recall: null,
+                f1_score: null,
+                mrr: null,
+                map: null,
+                ndcg: null,
+                lastUpdated: null
+            },
+            ragas: {
+                context_precision: null,
+                context_recall: null,
+                faithfulness: null,
+                answer_relevancy: null,
+                context_entity_recall: null,
+                context_relevance: null,
+                answer_correctness: null,
+                answer_similarity: null,
+                lastUpdated: null
+            }
+        };
+
+        // 生成随机指标数据
+        function generateRandomMetrics(type) {
+            const metrics = {};
+            if (type === 'bm25') {
+                metrics.context_precision = Math.random() * 0.5 + 0.3;
+                metrics.context_recall = Math.random() * 0.5 + 0.3;
+                metrics.f1_score = Math.random() * 0.5 + 0.3;
+                metrics.mrr = Math.random() * 0.5 + 0.3;
+                metrics.map = Math.random() * 0.5 + 0.3;
+                metrics.ndcg = Math.random() * 0.5 + 0.3;
+            } else if (type === 'ragas') {
+                metrics.context_precision = Math.random() * 0.5 + 0.3;
+                metrics.context_recall = Math.random() * 0.5 + 0.3;
+                metrics.faithfulness = Math.random() * 0.5 + 0.3;
+                metrics.answer_relevancy = Math.random() * 0.5 + 0.3;
+                metrics.context_entity_recall = Math.random() * 0.5 + 0.3;
+                metrics.context_relevance = Math.random() * 0.5 + 0.3;
+                metrics.answer_correctness = Math.random() * 0.5 + 0.3;
+                metrics.answer_similarity = Math.random() * 0.5 + 0.3;
+            }
+            metrics.lastUpdated = new Date().toISOString();
+            return metrics;
+        }
+
+        // 测试BM25缓存
+        function testCacheBM25() {
+            const data = generateRandomMetrics('bm25');
+            metricsCache.bm25 = data;
+            updateBM25Display(data);
+            saveToLocalStorage();
+            showStatus('BM25指标已缓存', 'success');
+        }
+
+        // 测试Ragas缓存
+        function testCacheRagas() {
+            const data = generateRandomMetrics('ragas');
+            metricsCache.ragas = data;
+            updateRagasDisplay(data);
+            saveToLocalStorage();
+            showStatus('Ragas指标已缓存', 'success');
+        }
+
+        // 更新BM25显示
+        function updateBM25Display(data) {
+            document.getElementById('test-bm25-precision').textContent = data.context_precision.toFixed(4);
+            document.getElementById('test-bm25-recall').textContent = data.context_recall.toFixed(4);
+            document.getElementById('test-bm25-f1').textContent = data.f1_score.toFixed(4);
+            document.getElementById('test-bm25-mrr').textContent = data.mrr.toFixed(4);
+            document.getElementById('test-bm25-map').textContent = data.map.toFixed(4);
+            document.getElementById('test-bm25-ndcg').textContent = data.ndcg.toFixed(4);
+        }
+
+        // 更新Ragas显示
+        function updateRagasDisplay(data) {
+            document.getElementById('test-ragas-precision').textContent = data.context_precision.toFixed(4);
+            document.getElementById('test-ragas-recall').textContent = data.context_recall.toFixed(4);
+            document.getElementById('test-ragas-faithfulness').textContent = data.faithfulness.toFixed(4);
+            document.getElementById('test-ragas-relevancy').textContent = data.answer_relevancy.toFixed(4);
+            document.getElementById('test-ragas-entity-recall').textContent = data.context_entity_recall.toFixed(4);
+            document.getElementById('test-ragas-context-relevance').textContent = data.context_relevance.toFixed(4);
+            document.getElementById('test-ragas-correctness').textContent = data.answer_correctness.toFixed(4);
+            document.getElementById('test-ragas-similarity').textContent = data.answer_similarity.toFixed(4);
+        }
+
+        // 保存到本地存储
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('metricsCache', JSON.stringify(metricsCache));
+                console.log('指标缓存已保存到本地存储');
+            } catch (error) {
+                console.error('保存指标缓存失败:', error);
+                showStatus('保存缓存失败: ' + error.message, 'error');
+            }
+        }
+
+        // 从本地存储加载
+        function loadCachedData() {
+            try {
+                const cached = localStorage.getItem('metricsCache');
+                if (cached) {
+                    const parsedCache = JSON.parse(cached);
+                    metricsCache = parsedCache;
+                    
+                    if (metricsCache.bm25 && metricsCache.bm25.lastUpdated) {
+                        updateBM25Display(metricsCache.bm25);
+                    }
+                    
+                    if (metricsCache.ragas && metricsCache.ragas.lastUpdated) {
+                        updateRagasDisplay(metricsCache.ragas);
+                    }
+                    
+                    showStatus('缓存数据已加载', 'success');
+                } else {
+                    showStatus('没有找到缓存数据', 'info');
+                }
+            } catch (error) {
+                console.error('加载指标缓存失败:', error);
+                showStatus('加载缓存失败: ' + error.message, 'error');
+            }
+        }
+
+        // 清除所有缓存
+        function clearAllCache() {
+            if (confirm('确定要清除所有缓存吗？')) {
+                metricsCache = {
+                    bm25: {
+                        context_precision: null,
+                        context_recall: null,
+                        f1_score: null,
+                        mrr: null,
+                        map: null,
+                        ndcg: null,
+                        lastUpdated: null
+                    },
+                    ragas: {
+                        context_precision: null,
+                        context_recall: null,
+                        faithfulness: null,
+                        answer_relevancy: null,
+                        context_entity_recall: null,
+                        context_relevance: null,
+                        answer_correctness: null,
+                        answer_similarity: null,
+                        lastUpdated: null
+                    }
+                };
+                
+                localStorage.removeItem('metricsCache');
+                resetDisplay();
+                showStatus('所有缓存已清除', 'success');
+            }
+        }
+
+        // 重置显示
+        function resetDisplay() {
+            const elements = document.querySelectorAll('[id^="test-"]');
+            elements.forEach(el => el.textContent = '--');
+        }
+
+        // 显示缓存状态
+        function showCacheStatus() {
+            let status = '<h3>缓存状态:</h3>';
+            
+            if (metricsCache.bm25 && metricsCache.bm25.lastUpdated) {
+                status += '<p><strong>BM25指标:</strong> 已缓存 (更新时间: ' + new Date(metricsCache.bm25.lastUpdated).toLocaleString() + ')</p>';
+            } else {
+                status += '<p><strong>BM25指标:</strong> 未缓存</p>';
+            }
+            
+            if (metricsCache.ragas && metricsCache.ragas.lastUpdated) {
+                status += '<p><strong>Ragas指标:</strong> 已缓存 (更新时间: ' + new Date(metricsCache.ragas.lastUpdated).toLocaleString() + ')</p>';
+            } else {
+                status += '<p><strong>Ragas指标:</strong> 未缓存</p>';
+            }
+            
+            status += '<p><strong>本地存储:</strong> ' + (localStorage.getItem('metricsCache') ? '已保存' : '未保存') + '</p>';
+            
+            document.getElementById('cacheStatus').innerHTML = status;
+        }
+
+        // 显示状态消息
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('cacheStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+
+        // 页面加载时自动加载缓存
+        window.onload = function() {
+            loadCachedData();
+            showCacheStatus();
+        };
+    </script>
+</body>
+</html>

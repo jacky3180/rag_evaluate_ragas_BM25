@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史数据分析 - RAG评估系统</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/components/navigation.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .chart-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(135deg, #667eea, #764ba2) 1;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            border-radius: 10px;
+        }
+        
+        .loading i.fa-info-circle {
+            color: #3498db;
+            margin-right: 8px;
+        }
+
+        .loading i {
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .stats-summary {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+            margin: 20px auto;
+            display: block;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+        }
+
+        /* 日期范围选择器样式 */
+        .date-range-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            flex-wrap: wrap;
+        }
+
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .date-input-group label {
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .date-input {
+            padding: 8px 12px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #2c3e50;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            width: auto;
+            min-width: 150px;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .apply-date-btn, .reset-date-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .apply-date-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .apply-date-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .reset-date-btn {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.4);
+        }
+
+        .reset-date-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(149, 165, 166, 0.6);
+        }
+
+        /* 初始提示样式 */
+        .initial-hint {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.1));
+            border: 2px dashed #3498db;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-top: 20px;
+            text-align: center;
+            color: #2c3e50;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .initial-hint i {
+            color: #f39c12;
+            font-size: 1.2rem;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 筛选状态样式 */
+        .filter-status {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin: 20px auto;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            animation: slideIn 0.3s ease;
+        }
+
+        .filter-status i {
+            margin-right: 8px;
+        }
+
+        .clear-filter-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .clear-filter-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 数据表格样式 */
+        .data-tables-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-container h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 600;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .data-table td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: rgba(102, 126, 234, 0.1);
+        }
+
+        .loading-cell {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            font-style: italic;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+        }
+        
+        .loading-cell i.fa-info-circle {
+            color: #3498db;
+            margin-right: 8px;
+        }
+
+        .percentage-cell {
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .tables-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i> 返回主页
+        </button>
+
+        <div class="header">
+            <div class="stats-summary">
+                <h3 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">
+                    <i class="fas fa-chart-bar"></i> 数据概览
+                </h3>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalEvaluations">-</div>
+                        <div class="stat-label">总评估次数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgPrecision">-</div>
+                        <div class="stat-label">平均准确率</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgRecall">-</div>
+                        <div class="stat-label">平均召回率</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="latestUpdate">-</div>
+                        <div class="stat-label">最新更新</div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <h1><i class="fas fa-chart-line"></i> 历史数据分析</h1>
+            <p>RAG评估系统历史指标趋势分析</p>
+            
+            <!-- 日期范围选择器 -->
+            <div class="date-range-selector">
+                <div class="date-input-group">
+                    <label for="startDate">开始日期:</label>
+                    <input type="date" id="startDate" class="date-input">
+                </div>
+                <div class="date-input-group">
+                    <label for="endDate">结束日期:</label>
+                    <input type="date" id="endDate" class="date-input">
+                </div>
+                <button class="apply-date-btn" onclick="applyDateFilter()">
+                    <i class="fas fa-filter"></i> 应用筛选
+                </button>
+                <button class="reset-date-btn" onclick="resetDateFilter()">
+                    <i class="fas fa-undo"></i> 重置
+                </button>
+            </div>
+            
+            <!-- 初始提示 -->
+            <div id="initial-hint" class="initial-hint">
+                <i class="fas fa-lightbulb"></i>
+                提示：请选择日期范围后，点击"应用筛选"按钮查看历史数据分析
+            </div>
+        </div>
+
+        
+        <!-- 数据表格显示区域 -->
+        <div class="data-tables-container">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">
+                <i class="fas fa-table"></i> 原始数据表格
+            </h3>
+            
+            <div class="tables-grid">
+                <!-- BM25 Precision 表格 -->
+                <div class="table-container">
+                    <h4><i class="fas fa-bullseye"></i> BM25-Precision 数据</h4>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="bm25PrecisionTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>时间</th>
+                                    <th>准确率</th>
+                                    <th>百分比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="4" class="loading-cell">
+                                    <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看数据
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- BM25 Recall 表格 -->
+                <div class="table-container">
+                    <h4><i class="fas fa-search"></i> BM25-Recall 数据</h4>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="bm25RecallTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>时间</th>
+                                    <th>召回率</th>
+                                    <th>百分比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="4" class="loading-cell">
+                                    <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看数据
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Ragas Precision 表格 -->
+                <div class="table-container">
+                    <h4><i class="fas fa-bullseye"></i> Ragas-Precision 数据</h4>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="ragasPrecisionTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>时间</th>
+                                    <th>准确率</th>
+                                    <th>百分比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="4" class="loading-cell">
+                                    <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看数据
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Ragas Recall 表格 -->
+                <div class="table-container">
+                    <h4><i class="fas fa-search"></i> Ragas-Recall 数据</h4>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="ragasRecallTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>时间</th>
+                                    <th>召回率</th>
+                                    <th>百分比</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="4" class="loading-cell">
+                                    <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看数据
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="charts-grid">
+            <!-- BM25 Precision Chart -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-bullseye"></i> BM25-Precision
+                </div>
+                <div class="chart-wrapper">
+                    <div class="loading" id="bm25PrecisionLoading">
+                        <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看图表
+                    </div>
+                    <div id="bm25PrecisionChart" style="display: none; width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- BM25 Recall Chart -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-search"></i> BM25-Recall
+                </div>
+                <div class="chart-wrapper">
+                    <div class="loading" id="bm25RecallLoading">
+                        <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看图表
+                    </div>
+                    <div id="bm25RecallChart" style="display: none; width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- BM25 F1-Score Chart -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-chart-line"></i> BM25-F1-Score
+                </div>
+                <div class="chart-wrapper">
+                    <div class="loading" id="bm25F1Loading">
+                        <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看图表
+                    </div>
+                    <div id="bm25F1Chart" style="display: none; width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- BM25 NDCG Chart -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-trophy"></i> BM25-NDCG
+                </div>
+                <div class="chart-wrapper">
+                    <div class="loading" id="bm25NDCGLoading">
+                        <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看图表
+                    </div>
+                    <div id="bm25NDCGChart" style="display: none; width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Ragas Precision Chart -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-bullseye"></i> Ragas-Precision
+                </div>
+                <div class="chart-wrapper">
+                    <div class="loading" id="ragasPrecisionLoading">
+                        <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看图表
+                    </div>
+                    <div id="ragasPrecisionChart" style="display: none; width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Ragas Recall Chart -->
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-search"></i> Ragas-Recall
+                </div>
+                <div class="chart-wrapper">
+                    <div class="loading" id="ragasRecallLoading">
+                        <i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看图表
+                    </div>
+                    <div id="ragasRecallChart" style="display: none; width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量存储原始数据和筛选状态
+        let originalData = {
+            bm25Precision: null,
+            bm25Recall: null,
+            bm25F1: null,
+            bm25NDCG: null,
+            ragasPrecision: null,
+            ragasRecall: null
+        };
+        let isDateFiltered = false;
+        
+        // 前端数据缓存（减少重复API调用）
+        let dataCache = {
+            allHistory: null,
+            timestamp: null,
+            ttl: 300000 // 5分钟缓存
+        };
+        
+        // 检查缓存是否有效
+        function isCacheValid() {
+            if (!dataCache.allHistory || !dataCache.timestamp) {
+                return false;
+            }
+            return (Date.now() - dataCache.timestamp) < dataCache.ttl;
+        }
+        
+        // 清除前端缓存
+        function clearFrontendCache() {
+            dataCache.allHistory = null;
+            dataCache.timestamp = null;
+            console.log('🗑️  前端缓存已清除');
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 不自动加载数据，等待用户点击"应用筛选"按钮
+            initializeDateInputs();
+            showInitialMessage();
+        });
+
+        // 返回主页
+        function goBack() {
+            window.location.href = 'http://localhost:8000/';
+        }
+
+        // 显示初始提示信息
+        function showInitialMessage() {
+            // 设置统计数据的初始提示
+            document.getElementById('totalEvaluations').textContent = '-';
+            document.getElementById('avgPrecision').textContent = '-';
+            document.getElementById('avgRecall').textContent = '-';
+            document.getElementById('latestUpdate').textContent = '请选择日期并查询';
+            
+            // 显示初始提示框
+            const hintElement = document.getElementById('initial-hint');
+            if (hintElement) {
+                hintElement.style.display = 'flex';
+            }
+        }
+        
+        // 隐藏初始提示
+        function hideInitialHint() {
+            const hintElement = document.getElementById('initial-hint');
+            if (hintElement) {
+                hintElement.style.display = 'none';
+            }
+        }
+        
+        // 显示初始提示
+        function showInitialHint() {
+            const hintElement = document.getElementById('initial-hint');
+            if (hintElement) {
+                hintElement.style.display = 'flex';
+            }
+        }
+
+        // 加载所有图表和数据表格（优化版 - 使用批量API）
+        async function loadAllCharts() {
+            try {
+                console.log('📊 开始批量加载图表数据...');
+                const startTime = performance.now();
+                
+                // 使用批量API一次性获取所有数据
+                const response = await fetch('/api/history/all');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    
+                    // 存储到原始数据
+                    originalData.bm25Precision = data.bm25.precision;
+                    originalData.bm25Recall = data.bm25.recall;
+                    originalData.bm25F1 = data.bm25.f1;
+                    originalData.bm25NDCG = data.bm25.ndcg;
+                    originalData.ragasPrecision = data.ragas.precision;
+                    originalData.ragasRecall = data.ragas.recall;
+                    
+                    // 更新前端缓存
+                    dataCache.allHistory = data;
+                    dataCache.timestamp = Date.now();
+                    
+                    // 应用日期筛选并渲染图表
+                    await renderAllChartsFromData();
+                    
+                    // 加载统计数据和表格
+                    await Promise.all([
+                        loadStatsSummary(),
+                        loadAllTables()
+                    ]);
+                    
+                    const endTime = performance.now();
+                    console.log(`✅ 图表加载完成，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+                } else {
+                    throw new Error(result.message || '批量加载失败');
+                }
+            } catch (error) {
+                console.error('❌ 批量加载图表失败:', error);
+                // 回退到单独加载
+                console.log('↩️  回退到单独加载模式...');
+                await loadAllChartsIndividually();
+            }
+        }
+        
+        // 回退方法：单独加载每个图表
+        async function loadAllChartsIndividually() {
+            try {
+                await Promise.all([
+                    loadBM25PrecisionChart(),
+                    loadBM25RecallChart(),
+                    loadBM25F1Chart(),
+                    loadBM25NDCGChart(),
+                    loadRagasPrecisionChart(),
+                    loadRagasRecallChart(),
+                    loadStatsSummary(),
+                    loadAllTables()
+                ]);
+            } catch (error) {
+                console.error('加载图表失败:', error);
+                showError('加载数据失败，请稍后重试');
+            }
+        }
+        
+        // 从已有数据渲染所有图表
+        async function renderAllChartsFromData() {
+            const startDate = isDateFiltered ? document.getElementById('startDate').value : null;
+            const endDate = isDateFiltered ? document.getElementById('endDate').value : null;
+            
+            // 应用筛选
+            const bm25Precision = isDateFiltered ? filterDataByDate(originalData.bm25Precision, startDate, endDate) : originalData.bm25Precision;
+            const bm25Recall = isDateFiltered ? filterDataByDate(originalData.bm25Recall, startDate, endDate) : originalData.bm25Recall;
+            const bm25F1 = isDateFiltered ? filterDataByDate(originalData.bm25F1, startDate, endDate) : originalData.bm25F1;
+            const bm25NDCG = isDateFiltered ? filterDataByDate(originalData.bm25NDCG, startDate, endDate) : originalData.bm25NDCG;
+            const ragasPrecision = isDateFiltered ? filterDataByDate(originalData.ragasPrecision, startDate, endDate) : originalData.ragasPrecision;
+            const ragasRecall = isDateFiltered ? filterDataByDate(originalData.ragasRecall, startDate, endDate) : originalData.ragasRecall;
+            
+            // 并行渲染所有图表
+            await Promise.all([
+                createPlotlyChart('bm25PrecisionChart', 'BM25-Precision', bm25Precision, '#667eea'),
+                createPlotlyChart('bm25RecallChart', 'BM25-Recall', bm25Recall, '#e74c3c'),
+                createPlotlyChart('bm25F1Chart', 'BM25-F1-Score', bm25F1, '#9b59b6'),
+                createPlotlyChart('bm25NDCGChart', 'BM25-NDCG', bm25NDCG, '#f39c12'),
+                createPlotlyChart('ragasPrecisionChart', 'Ragas-Precision', ragasPrecision, '#27ae60'),
+                createPlotlyChart('ragasRecallChart', 'Ragas-Recall', ragasRecall, '#f39c12')
+            ]);
+        }
+
+        // 加载所有数据表格
+        async function loadAllTables() {
+            try {
+                await Promise.all([
+                    loadBM25PrecisionTable(),
+                    loadBM25RecallTable(),
+                    loadRagasPrecisionTable(),
+                    loadRagasRecallTable()
+                ]);
+            } catch (error) {
+                console.error('加载表格失败:', error);
+            }
+        }
+
+        // 加载BM25 Precision图表
+        async function loadBM25PrecisionChart() {
+            try {
+                // 总是获取最新数据以确保筛选功能正常工作
+                const response = await fetch('/api/history/bm25/precision');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 存储原始数据
+                    originalData.bm25Precision = data.data.history;
+                    
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    createPlotlyChart('bm25PrecisionChart', 'BM25-Precision', filteredData, '#667eea');
+                } else {
+                    showChartError('bm25PrecisionLoading', data.message);
+                }
+            } catch (error) {
+                console.error('加载BM25 Precision图表失败:', error);
+                showChartError('bm25PrecisionLoading', '加载失败');
+            }
+        }
+
+        // 加载BM25 Recall图表
+        async function loadBM25RecallChart() {
+            try {
+                // 总是获取最新数据以确保筛选功能正常工作
+                const response = await fetch('/api/history/bm25/recall');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 存储原始数据
+                    originalData.bm25Recall = data.data.history;
+                    
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    createPlotlyChart('bm25RecallChart', 'BM25-Recall', filteredData, '#e74c3c');
+                } else {
+                    showChartError('bm25RecallLoading', data.message);
+                }
+            } catch (error) {
+                console.error('加载BM25 Recall图表失败:', error);
+                showChartError('bm25RecallLoading', '加载失败');
+            }
+        }
+
+        // 加载BM25 F1-Score图表
+        async function loadBM25F1Chart() {
+            try {
+                // 总是获取最新数据以确保筛选功能正常工作
+                const response = await fetch('/api/history/bm25/f1');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 存储原始数据
+                    originalData.bm25F1 = data.data.history;
+                    
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    createPlotlyChart('bm25F1Chart', 'BM25-F1-Score', filteredData, '#9b59b6');
+                } else {
+                    showChartError('bm25F1Loading', data.message);
+                }
+            } catch (error) {
+                console.error('加载BM25 F1-Score图表失败:', error);
+                showChartError('bm25F1Loading', '加载失败');
+            }
+        }
+
+        // 加载BM25 NDCG图表
+        async function loadBM25NDCGChart() {
+            try {
+                // 总是获取最新数据以确保筛选功能正常工作
+                const response = await fetch('/api/history/bm25/ndcg');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 存储原始数据
+                    originalData.bm25NDCG = data.data.history;
+                    
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    createPlotlyChart('bm25NDCGChart', 'BM25-NDCG', filteredData, '#f39c12');
+                } else {
+                    showChartError('bm25NDCGLoading', data.message);
+                }
+            } catch (error) {
+                console.error('加载BM25 NDCG图表失败:', error);
+                showChartError('bm25NDCGLoading', '加载失败');
+            }
+        }
+
+        // 加载Ragas Precision图表
+        async function loadRagasPrecisionChart() {
+            try {
+                // 总是获取最新数据以确保筛选功能正常工作
+                const response = await fetch('/api/history/ragas/precision');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 存储原始数据
+                    originalData.ragasPrecision = data.data.history;
+                    
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    createPlotlyChart('ragasPrecisionChart', 'Ragas-Precision', filteredData, '#27ae60');
+                } else {
+                    showChartError('ragasPrecisionLoading', data.message);
+                }
+            } catch (error) {
+                console.error('加载Ragas Precision图表失败:', error);
+                showChartError('ragasPrecisionLoading', '加载失败');
+            }
+        }
+
+        // 加载Ragas Recall图表
+        async function loadRagasRecallChart() {
+            try {
+                // 总是获取最新数据以确保筛选功能正常工作
+                const response = await fetch('/api/history/ragas/recall');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 存储原始数据
+                    originalData.ragasRecall = data.data.history;
+                    
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    createPlotlyChart('ragasRecallChart', 'Ragas-Recall', filteredData, '#f39c12');
+                } else {
+                    showChartError('ragasRecallLoading', data.message);
+                }
+            } catch (error) {
+                console.error('加载Ragas Recall图表失败:', error);
+                showChartError('ragasRecallLoading', '加载失败');
+            }
+        }
+
+        // 加载统计概览
+        async function loadStatsSummary() {
+            try {
+                const response = await fetch('/api/history/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateStatsSummary(data.data);
+                }
+            } catch (error) {
+                console.error('加载统计概览失败:', error);
+            }
+        }
+
+        // 创建Plotly图表
+        function createPlotlyChart(containerId, title, data, color) {
+            const container = document.getElementById(containerId);
+            const loading = document.getElementById(containerId.replace('Chart', 'Loading'));
+            
+            // 隐藏加载动画，显示图表容器
+            loading.style.display = 'none';
+            container.style.display = 'block';
+            
+            // 如果没有数据，显示空状态
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #7f8c8d;">
+                        <i class="fas fa-chart-line" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <p style="font-size: 1.1rem;">暂无历史数据</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">请先进行一些评估以生成数据</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 数据预处理：按时间排序
+            let processedData = data
+                .filter(item => item.created_at && item.value !== null && item.value !== undefined)
+                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            
+            // 根据图表类型决定是否去重
+            let finalData;
+            const isRagasChart = title.includes('Ragas') || title.includes('RAGAS');
+            
+            if (isRagasChart) {
+                // Ragas图表：永远不去重，显示所有数据
+                finalData = processedData;
+            } else if (isDateFiltered) {
+                // BM25图表 + 应用日期筛选时：显示时间范围内的所有数据，不去重
+                finalData = processedData;
+            } else {
+                // BM25图表 + 未应用筛选时：进行去重（同一天只显示最新的）
+                const deduplicatedData = processedData.reduce((acc, current) => {
+                    const dateKey = new Date(current.created_at).toISOString().split('T')[0];
+                    if (!acc[dateKey] || new Date(current.created_at) > new Date(acc[dateKey].created_at)) {
+                        acc[dateKey] = current;
+                    }
+                    return acc;
+                }, {});
+                finalData = Object.values(deduplicatedData);
+            }
+            
+            // 准备数据
+            const dates = finalData.map(item => new Date(item.created_at));
+            const values = finalData.map(item => parseFloat((item.value * 100).toFixed(2)));
+            
+            // 计算日期范围以确定最佳显示格式
+            const dateRange = getDateRange(dates);
+            const dateFormat = getOptimalDateFormat(dateRange);
+            
+            // 调试信息
+            console.log(`${title} 图表数据:`, {
+                originalDataCount: data.length,
+                finalDataCount: finalData.length,
+                isDateFiltered: isDateFiltered,
+                dateRange: dateRange,
+                dateFormat: dateFormat,
+                dates: dates,
+                values: values
+            });
+            
+            // 创建悬停文本
+            const hoverText = finalData.map((item, index) => {
+                const date = new Date(item.created_at);
+                const formattedDate = formatDateForHover(date, dateRange);
+                return `${title}<br>时间: ${formattedDate}<br>数值: ${(item.value * 100).toFixed(2)}%`;
+            });
+            
+            const plotData = [{
+                x: dates.map((_, index) => index), // 使用索引作为x坐标，确保等间距
+                y: values,
+                type: 'scatter',
+                mode: 'lines+markers+text',
+                name: title,
+                line: {
+                    color: color,
+                    width: 3,
+                    shape: 'spline'
+                },
+                marker: {
+                    color: color,
+                    size: 10,
+                    line: {
+                        color: '#fff',
+                        width: 2
+                    }
+                },
+                text: values.map(v => v.toFixed(1) + '%'),
+                textposition: 'top center',
+                textfont: {
+                    color: color,
+                    size: 10,
+                    family: 'Arial, sans-serif'
+                },
+                hovertemplate: '%{hovertext}<extra></extra>',
+                hovertext: hoverText
+            }];
+            
+            const layout = {
+                title: {
+                    text: title,
+                    font: {
+                        size: 16,
+                        color: '#2c3e50'
+                    }
+                },
+                xaxis: {
+                    title: '时间',
+                    titlefont: {
+                        size: 14,
+                        color: '#2c3e50'
+                    },
+                    tickfont: {
+                        size: 10,
+                        color: '#7f8c8d'
+                    },
+                    gridcolor: 'rgba(0,0,0,0.1)',
+                    showgrid: true,
+                    type: 'linear', // 使用线性模式，等间距显示
+                    tickangle: -90, // 纵向显示标签
+                    tickmode: 'array', // 使用数组模式
+                    tickvals: dates.map((_, index) => index), // 使用索引作为刻度值，确保等间距
+                    ticktext: dates.map(date => {
+                        const d = new Date(date);
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const hours = String(d.getHours()).padStart(2, '0');
+                        const minutes = String(d.getMinutes()).padStart(2, '0');
+                        return `${month}-${day} ${hours} ${minutes}`;
+                    }),
+                    range: [-0.5, finalData.length - 0.5] // 设置范围，确保数据点居中
+                },
+                yaxis: {
+                    title: '百分比 (%)',
+                    titlefont: {
+                        size: 14,
+                        color: '#2c3e50'
+                    },
+                    tickfont: {
+                        size: 12,
+                        color: '#7f8c8d'
+                    },
+                    gridcolor: 'rgba(0,0,0,0.1)',
+                    showgrid: true,
+                    range: [-5, 110], // 为数据点和数值标签留出更多空间
+                    tickformat: '.1f' // 显示一位小数
+                },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                margin: {
+                    l: 60,
+                    r: 30,
+                    t: 80,
+                    b: 100 // 为纵向标签留出足够空间
+                },
+                showlegend: false,
+                hovermode: 'closest'
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'toImage', 'sendDataToCloud', 'toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian'],
+                displaylogo: false,
+                // 性能优化配置
+                staticPlot: false,  // 保持交互性
+                doubleClick: 'reset',  // 双击重置
+                showTips: false,  // 关闭提示
+                // 减少重绘次数
+                editable: false,
+                scrollZoom: false
+            };
+            
+            // 创建图表（使用react而不是newPlot可以更快地更新）
+            if (document.getElementById(container).data) {
+                // 如果图表已存在，使用react更新（更快）
+                Plotly.react(container, plotData, layout, config);
+            } else {
+                // 首次创建图表
+                Plotly.newPlot(container, plotData, layout, config);
+            }
+        }
+
+        // 显示图表错误
+        function showChartError(loadingId, message) {
+            const loading = document.getElementById(loadingId);
+            loading.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+            loading.style.color = '#e74c3c';
+        }
+
+        // 更新统计概览
+        function updateStatsSummary(stats) {
+            document.getElementById('totalEvaluations').textContent = stats.total_evaluations || 0;
+            document.getElementById('avgPrecision').textContent = 
+                stats.avg_precision ? (stats.avg_precision * 100).toFixed(1) + '%' : '-';
+            document.getElementById('avgRecall').textContent = 
+                stats.avg_recall ? (stats.avg_recall * 100).toFixed(1) + '%' : '-';
+            document.getElementById('latestUpdate').textContent = 
+                stats.latest_update ? new Date(stats.latest_update).toLocaleDateString() : '-';
+        }
+
+        // 加载BM25 Precision表格
+        async function loadBM25PrecisionTable() {
+            try {
+                const response = await fetch('/api/history/bm25/precision');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    populateTable('bm25PrecisionTable', filteredData, '准确率');
+                } else {
+                    showTableError('bm25PrecisionTable', data.message);
+                }
+            } catch (error) {
+                showTableError('bm25PrecisionTable', '加载失败');
+            }
+        }
+
+        // 加载BM25 Recall表格
+        async function loadBM25RecallTable() {
+            try {
+                const response = await fetch('/api/history/bm25/recall');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    populateTable('bm25RecallTable', filteredData, '召回率');
+                } else {
+                    showTableError('bm25RecallTable', data.message);
+                }
+            } catch (error) {
+                showTableError('bm25RecallTable', '加载失败');
+            }
+        }
+
+        // 加载Ragas Precision表格
+        async function loadRagasPrecisionTable() {
+            try {
+                const response = await fetch('/api/history/ragas/precision');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    populateTable('ragasPrecisionTable', filteredData, '准确率');
+                } else {
+                    showTableError('ragasPrecisionTable', data.message);
+                }
+            } catch (error) {
+                showTableError('ragasPrecisionTable', '加载失败');
+            }
+        }
+
+        // 加载Ragas Recall表格
+        async function loadRagasRecallTable() {
+            try {
+                const response = await fetch('/api/history/ragas/recall');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 应用日期筛选
+                    let filteredData = data.data.history;
+                    if (isDateFiltered) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        filteredData = filterDataByDate(data.data.history, startDate, endDate);
+                    }
+                    
+                    populateTable('ragasRecallTable', filteredData, '召回率');
+                } else {
+                    showTableError('ragasRecallTable', data.message);
+                }
+            } catch (error) {
+                showTableError('ragasRecallTable', '加载失败');
+            }
+        }
+
+        // 填充表格数据
+        function populateTable(tableId, data, metricType) {
+            console.log("populateTable 被调用:", {tableId, data, metricType});
+            
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            
+            if (!data || data.length === 0) {
+                console.log("数据为空，显示暂无数据");
+                tbody.innerHTML = '<tr><td colspan="4" class="loading-cell">暂无数据</td></tr>';
+                return;
+            }
+            
+            // 数据预处理：按时间排序
+            let processedData = data
+                .filter(item => {
+                    const isValid = item.created_at && item.value !== null && item.value !== undefined;
+                    console.log(`过滤数据项:`, item, "是否有效:", isValid);
+                    return isValid;
+                })
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // 表格按时间倒序
+            
+            console.log("处理后的数据:", processedData);
+            
+            // 根据表格类型决定是否去重
+            let finalData;
+            const isRagasTable = tableId.includes('ragas') || tableId.includes('Ragas');
+            
+            console.log("表格类型检查:", {tableId, isRagasTable, isDateFiltered});
+            
+            if (isRagasTable) {
+                // Ragas表格：永远不去重，显示所有数据
+                console.log("Ragas表格，不去重");
+                finalData = processedData;
+            } else if (isDateFiltered) {
+                // BM25表格 + 应用日期筛选时：显示时间范围内的所有数据，不去重
+                console.log("BM25表格 + 已筛选，不去重");
+                finalData = processedData;
+            } else {
+                // BM25表格 + 未应用筛选时：进行去重（同一天只显示最新的）
+                console.log("BM25表格 + 未筛选，去重");
+                const deduplicatedData = processedData.reduce((acc, current) => {
+                    const dateKey = new Date(current.created_at).toISOString().split('T')[0];
+                    if (!acc[dateKey] || new Date(current.created_at) > new Date(acc[dateKey].created_at)) {
+                        acc[dateKey] = current;
+                    }
+                    return acc;
+                }, {});
+                finalData = Object.values(deduplicatedData);
+            }
+            
+            console.log("最终数据:", finalData);
+            
+            tbody.innerHTML = '';
+            finalData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                const date = new Date(item.created_at);
+                const formattedDate = formatTableDate(date);
+                const percentage = (item.value * 100).toFixed(1);
+                
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${formattedDate}</td>
+                    <td>${item.value.toFixed(4)}</td>
+                    <td class="percentage-cell">${percentage}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 格式化表格中的日期显示
+        function formatTableDate(date) {
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            
+            // 表格中只显示日期部分：MM-DD
+            return `${month}-${day}`;
+        }
+
+        // 初始化日期输入框
+        function initializeDateInputs() {
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            
+            // 设置默认日期范围（最近30天）
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            endDateInput.value = today.toISOString().split('T')[0];
+            startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            // 确保整个输入框都能点击打开日期选择器
+            startDateInput.addEventListener('click', function() {
+                this.showPicker();
+            });
+            
+            endDateInput.addEventListener('click', function() {
+                this.showPicker();
+            });
+        }
+
+        // 应用日期筛选（使用防抖优化）
+        const applyDateFilter = debounce(function() {
+            console.log("applyDateFilter 被调用");
+            
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            console.log("选择的日期范围:", {startDate, endDate});
+            
+            if (!startDate || !endDate) {
+                alert('请选择开始和结束日期');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('开始日期不能晚于结束日期');
+                return;
+            }
+            
+            isDateFiltered = true;
+            console.log("设置 isDateFiltered 为 true");
+            
+            // 隐藏初始提示
+            hideInitialHint();
+            
+            // 重新加载所有图表和表格
+            console.log("重新加载所有图表和表格");
+            loadAllCharts();
+            
+            // 显示筛选状态
+            showFilterStatus(startDate, endDate);
+        }, 300);
+
+        // 重置日期筛选
+        function resetDateFilter() {
+            isDateFiltered = false;
+            initializeDateInputs();
+            
+            // 不自动加载数据，显示初始提示
+            showInitialHint();
+            hideFilterStatus();
+            
+            // 重置图表和表格为初始状态
+            resetChartsAndTables();
+        }
+        
+        // 重置图表和表格为初始状态
+        function resetChartsAndTables() {
+            // 重置所有图表加载区域
+            const loadingIds = [
+                'bm25PrecisionLoading',
+                'bm25RecallLoading',
+                'bm25F1Loading',
+                'bm25NDCGLoading',
+                'ragasPrecisionLoading',
+                'ragasRecallLoading'
+            ];
+            
+            loadingIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.innerHTML = '<i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看图表';
+                    element.style.display = 'flex';
+                }
+            });
+            
+            // 隐藏所有图表
+            const chartIds = [
+                'bm25PrecisionChart',
+                'bm25RecallChart',
+                'bm25F1Chart',
+                'bm25NDCGChart',
+                'ragasPrecisionChart',
+                'ragasRecallChart'
+            ];
+            
+            chartIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            });
+            
+            // 重置所有表格
+            const tableIds = [
+                'bm25PrecisionTable',
+                'bm25RecallTable',
+                'ragasPrecisionTable',
+                'ragasRecallTable'
+            ];
+            
+            tableIds.forEach(id => {
+                const table = document.getElementById(id);
+                if (table) {
+                    const tbody = table.querySelector('tbody');
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="loading-cell"><i class="fas fa-info-circle"></i> 请选择日期范围后点击"应用筛选"按钮查看数据</td></tr>';
+                    }
+                }
+            });
+            
+            // 重置统计数据
+            showInitialMessage();
+        }
+
+        // 显示筛选状态
+        function showFilterStatus(startDate, endDate) {
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'filter-status';
+            statusDiv.className = 'filter-status';
+            statusDiv.innerHTML = `
+                <i class="fas fa-filter"></i>
+                已应用日期筛选: ${startDate} 至 ${endDate}
+                <button onclick="resetDateFilter()" class="clear-filter-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            // 插入到header后面
+            const header = document.querySelector('.header');
+            header.insertAdjacentElement('afterend', statusDiv);
+        }
+
+        // 隐藏筛选状态
+        function hideFilterStatus() {
+            const statusDiv = document.getElementById('filter-status');
+            if (statusDiv) {
+                statusDiv.remove();
+            }
+        }
+
+        // 根据日期筛选数据
+        function filterDataByDate(data, startDate, endDate) {
+            console.log("filterDataByDate 被调用:", {data, startDate, endDate});
+            
+            // 修复：始终执行筛选逻辑，不依赖 isDateFiltered 标志
+            if (!data || !startDate || !endDate) {
+                console.log("数据或日期为空，返回原始数据");
+                return data || [];
+            }
+            
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0); // 设置为开始日期的00:00:00.000
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999); // 包含结束日期的整天
+            
+            console.log("筛选日期范围:", {start, end});
+            
+            // 筛选指定时间范围内的所有数据，不过滤同一天的数据
+            const result = data.filter(item => {
+                if (!item.created_at) return false;
+                const itemDate = new Date(item.created_at);
+                console.log(`检查数据项: ${item.created_at} (${itemDate}) 是否在 ${start} 和 ${end} 之间`);
+                const isInRange = itemDate >= start && itemDate <= end;
+                console.log(`结果: ${isInRange}`);
+                return isInRange;
+            });
+            
+            console.log("filterDataByDate 返回结果:", result);
+            return result;
+        }
+
+        // 显示表格错误
+        function showTableError(tableId, message) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = `<tr><td colspan="4" class="loading-cell" style="color: #e74c3c;">${message}</td></tr>`;
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.container').insertBefore(errorDiv, document.querySelector('.charts-grid'));
+        }
+
+        // 日期处理辅助函数
+        function getDateRange(dates) {
+            if (!dates || dates.length === 0) return { days: 0, hours: 0 };
+            
+            const minDate = new Date(Math.min(...dates));
+            const maxDate = new Date(Math.max(...dates));
+            const diffMs = maxDate - minDate;
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+            
+            return { days: diffDays, hours: diffHours };
+        }
+
+        function getOptimalDateFormat(dateRange) {
+            // 横轴显示格式：MM-DD HH MM
+            return '%m-%d %H %M';
+        }
+
+        function formatDateForHover(date, dateRange) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            // 悬停文本显示完整的日期时间信息：MM-DD HH:MM
+            return `${month}-${day} ${hours}:${minutes}`;
+        }
+    </script>
+    <script src="/static/utils/debounce.js"></script>
+    <script src="/static/components/navigation.js"></script>
+</body>
+</html>
